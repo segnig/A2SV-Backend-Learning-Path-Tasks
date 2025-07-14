@@ -19,21 +19,6 @@ This is a simple Go console application that allows students to calculate their 
 
 - [Go 1.20+](https://golang.org/dl/) installed on your system.
 
-### 📦 Installation & Running
-
-1. **Clone the repository** (if applicable) or download the `.go` files:
-
-   ```bash
-   git clone https://github.com/yourusername/student-grade-calculator.git
-   cd student-grade-calculator
-````
-
-2. **Run the application**:
-
-   ```bash
-   go run main.go user_input.go display_to_user.go
-   ```
-
 ---
 
 ## 🗂️ Project Structure
