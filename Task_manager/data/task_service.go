@@ -1,111 +1,117 @@
 package data
 
 import (
+	"context"
+	"fmt"
+	"log"
+	"os"
 	"task-manager/models"
-	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var tasks = []models.Task{
-	{
-		ID:          "1",
-		Title:       "Finish project proposal",
-		Description: "Write and submit the proposal to the client",
-		DueDate:     time.Date(2025, 7, 20, 17, 0, 0, 0, time.UTC),
-		Status:      "Pending",
-	},
-	{
-		ID:          "2",
-		Title:       "Team meeting",
-		Description: "Weekly sync with the development team",
-		DueDate:     time.Date(2025, 7, 18, 10, 0, 0, 0, time.UTC),
-		Status:      "In Progress",
-	},
-	{
-		ID:          "3",
-		Title:       "Update project documentation",
-		Description: "Revise API reference and architecture diagrams",
-		DueDate:     time.Date(2025, 7, 25, 15, 0, 0, 0, time.UTC),
-		Status:      "Pending",
-	},
-	{
-		ID:          "4",
-		Title:       "Deploy new version",
-		Description: "Deploy v1.2.3 to staging environment",
-		DueDate:     time.Date(2025, 7, 22, 13, 0, 0, 0, time.UTC),
-		Status:      "Completed",
-	},
-	{
-		ID:          "5",
-		Title:       "Code review",
-		Description: "Review PRs assigned in the sprint board",
-		DueDate:     time.Date(2025, 7, 19, 9, 30, 0, 0, time.UTC),
-		Status:      "In Progress",
-	},
+var (
+	client         *mongo.Client
+	taskCollection mongo.Collection
+	cxt            = context.Background()
+)
+
+func init() {
+	mongoURL := os.Getenv("MONGO_URL")
+
+	if mongoURL == "" {
+		mongoURL = "mongodb://localhost:27017"
+	}
+
+	var err error
+
+	clientOptions := options.Client().ApplyURI(mongoURL)
+	client, err = mongo.Connect(cxt, clientOptions)
+
+	if err != nil {
+		log.Fatalf("MongoDB connection failed: %v", err)
+	}
+
+	taskCollection = *client.Database("task-manager").Collection("tasks")
 }
 
 // Get all tasks
-func GetAllTasks() []models.Task {
-	return tasks
+func GetAllTasks() ([]models.Task, error) {
+
+	cursor, err := taskCollection.Find(cxt, bson.M{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(cxt)
+
+	var tasks []models.Task
+
+	if err = cursor.All(cxt, &tasks); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
 }
 
 // Get specific task by its id
-func GetTaskById(id string) (models.Task, bool) {
+func GetTaskById(id string) (*models.Task, error) {
 
-	for _, task := range tasks {
-		if task.ID == id {
-			return task, true
-		}
-	}
-
-	return models.Task{}, false
+	var task models.Task
+	err := taskCollection.FindOne(cxt, bson.M{"id": id}).Decode(&task)
+	return &task, err
 }
 
 // update specific task by its id
-func UpdateTaskbyId(id string, updatedTask models.Task) (models.Task, bool) {
+func UpdateTaskbyId(id string, updatedTask models.Task) error {
 
-	for idx, task := range tasks {
-		if task.ID == id {
-			if task.Title != "" {
-				tasks[idx].Title = updatedTask.Title
-			}
+	result, err := taskCollection.UpdateOne(
+		cxt,
+		bson.M{"id": id},
+		bson.M{"$set": updatedTask},
+	)
 
-			if task.Description != "" {
-				tasks[idx].Description = updatedTask.Description
-			}
-			if task.Status != "" {
-				tasks[idx].Status = updatedTask.Status
-			}
-
-			return tasks[idx], true
-		}
+	if err != nil {
+		return err
 	}
 
-	return models.Task{}, false
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("no task found with id '%s'", id)
+	}
+
+	return err
 }
 
 // Delete task by its id if exists
-func DeleteTaskById(id string) (models.Task, bool) {
-	deletedTask := models.Task{}
+func DeleteTaskById(id string) error {
+	result, err := taskCollection.DeleteOne(
+		cxt,
+		bson.M{"id": id},
+	)
 
-	for idx, task := range tasks {
-		if task.ID == id {
-			deletedTask = task
-			tasks = append(tasks[:idx], tasks[idx+1:]...)
-
-			return deletedTask, true
-		}
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("task id '%v' not found", id)
 	}
 
-	return deletedTask, false
+	return err
 }
 
 // Add new task if not exists
-func AddNewTask(newTask models.Task) (models.Task, bool) {
-	for _, task := range tasks {
-		if task.ID == newTask.ID {
-			return models.Task{}, false
-		}
+func AddNewTask(newTask models.Task) (*models.Task, error) {
+	count, err := taskCollection.CountDocuments(cxt, bson.M{"id": newTask.ID})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to check task ID uniqueness %v", err)
 	}
-	tasks = append(tasks, newTask)
-	return newTask, true
+
+	if count > 0 {
+		return nil, fmt.Errorf("task ID '%s' already exists", newTask.ID)
+	}
+
+	_, err = taskCollection.InsertOne(cxt, newTask)
+
+	return &newTask, err
 }

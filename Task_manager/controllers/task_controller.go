@@ -9,18 +9,24 @@ import (
 )
 
 func GetTasks(ctx *gin.Context) {
-	tasks := data.GetAllTasks()
+	tasks, err := data.GetAllTasks()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "failed getting tasks"})
+		return
+	}
 	ctx.JSON(http.StatusOK, tasks)
 }
 
 func GetTaskById(ctx *gin.Context) {
 	id := ctx.Param("id")
 
-	if task, found := data.GetTaskById(id); found {
-		ctx.JSON(http.StatusOK, task)
+	task, err := data.GetTaskById(id)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+	ctx.JSON(http.StatusOK, task)
 }
 
 func CreateTask(ctx *gin.Context) {
@@ -31,9 +37,9 @@ func CreateTask(ctx *gin.Context) {
 		return
 	}
 
-	createdTask, OK := data.AddNewTask(newTask)
+	createdTask, err := data.AddNewTask(newTask)
 
-	if !OK {
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "task already exists"})
 		return
 	}
@@ -43,10 +49,11 @@ func CreateTask(ctx *gin.Context) {
 func DeleTeTask(ctx *gin.Context) {
 	id := ctx.Param("id")
 
-	_, OK := data.DeleteTaskById(id)
+	err := data.DeleteTaskById(id)
 
-	if !OK {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Task deleted"})
@@ -62,12 +69,12 @@ func UpdateTask(ctx *gin.Context) {
 		return
 	}
 
-	updated, OK := data.UpdateTaskbyId(id, updatedTask)
+	err := data.UpdateTaskbyId(id, updatedTask)
 
-	if !OK {
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Task not found"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, updated)
+	ctx.JSON(http.StatusOK, updatedTask)
 }
