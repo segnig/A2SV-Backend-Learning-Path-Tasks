@@ -33,7 +33,6 @@ func init() {
 	if err != nil {
 		log.Fatalf("MongoDB connection failed: %v", err)
 	}
-
 	taskCollection = *client.Database("task-manager").Collection("tasks")
 }
 
@@ -49,11 +48,9 @@ func GetAllTasks() ([]models.Task, error) {
 	defer cursor.Close(cxt)
 
 	var tasks []models.Task
-
 	if err = cursor.All(cxt, &tasks); err != nil {
 		return nil, err
 	}
-
 	return tasks, nil
 }
 
@@ -77,11 +74,9 @@ func UpdateTaskbyId(id string, updatedTask models.Task) error {
 	if err != nil {
 		return err
 	}
-
 	if result.MatchedCount == 0 {
 		return fmt.Errorf("no task found with id '%s'", id)
 	}
-
 	return err
 }
 
@@ -95,7 +90,6 @@ func DeleteTaskById(id string) error {
 	if result.DeletedCount == 0 {
 		return fmt.Errorf("task id '%v' not found", id)
 	}
-
 	return err
 }
 
@@ -112,6 +106,5 @@ func AddNewTask(newTask models.Task) (*models.Task, error) {
 	}
 
 	_, err = taskCollection.InsertOne(cxt, newTask)
-
 	return &newTask, err
 }
