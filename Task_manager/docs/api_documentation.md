@@ -1,6 +1,12 @@
-# Task Manager API Documentation
+# 📘 Task-Manager API Documentation
 
-## Base URL
+## Overview
+
+The Task-Manager API provides functionality to manage tasks and users. It supports creating, reading, updating, and deleting tasks, as well as managing users via signup, login, and administrative actions.
+
+---
+
+## 🔗 Base URL
 
 ```
 http://localhost:8080/api
@@ -8,28 +14,31 @@ http://localhost:8080/api
 
 ---
 
-## Data Model
+## 📦 Data Model
+
+### Task Object
 
 ```json
 {
-  "id": "string",                  // Unique identifier
-  "title": "string",              // Task title (required)
-  "description": "string",        // Detailed task description
-  "due_date": "2025-07-25T15:00:00Z", // Due date in RFC3339 format (ISO8601)
-  "status": "Pending"             // Task status: "Pending", "In Progress", "Completed"
+  "id": "string",                     // Unique Task ID
+  "title": "string",                 // Task title (required)
+  "description": "string",           // Task description
+  "due_date": "2025-07-25T15:00:00Z", // ISO 8601 format (RFC3339)
+  "status": "Pending"                // One of: "Pending", "In Progress", "Completed"
 }
 ```
 
 ---
 
-## Endpoints
+## 📒 Task Endpoints
 
-### 1. Get All Tasks
+### 📋 List All Tasks
 
-* **Method:** `GET`
-* **URL:** `/tasks`
-* **Description:** Retrieve a list of all tasks.
-* **Response:**
+**GET** `/tasks`
+
+Retrieve all tasks.
+
+#### Response
 
 ```json
 [
@@ -43,19 +52,25 @@ http://localhost:8080/api
 ]
 ```
 
-* **Status Code:** `200 OK`
+**Status Codes**
+
+* `200 OK` – Success
 
 ---
 
-### 2. Get Task by ID
+### 🔍 Get Task by ID
 
-* **Method:** `GET`
-* **URL:** `/tasks?id={id}`
-* **Parameters:**
+**GET** `/tasks?id={id}`
 
-  * `id` (string) – Task ID
-* **Description:** Retrieve a specific task by ID.
-* **Response:**
+Retrieve a task by its ID.
+
+#### Query Parameters
+
+| Name | Type   | Required | Description     |
+| ---- | ------ | -------- | --------------- |
+| id   | string | ✅        | Task identifier |
+
+#### Response
 
 ```json
 {
@@ -67,19 +82,20 @@ http://localhost:8080/api
 }
 ```
 
-* **Status Codes:**
+**Status Codes**
 
-  * `200 OK` – Task found
-  * `404 Not Found` – Task not found
+* `200 OK` – Task found
+* `404 Not Found` – Task does not exist
 
 ---
 
-### 3. Create a New Task
+### 📝 Create New Task
 
-* **Method:** `POST`
-* **URL:** `/tasks`
-* **Description:** Create a new task
-* **Body Example:**
+**POST** `/tasks`
+
+Create a new task.
+
+#### Request Body
 
 ```json
 {
@@ -91,68 +107,179 @@ http://localhost:8080/api
 }
 ```
 
-* **Status Codes:**
+**Status Codes**
 
-  * `201 Created` – Created successfully
-  * `400 Bad Request` – Invalid data or task already exists
+* `201 Created` – Task successfully created
+* `400 Bad Request` – Invalid format or duplicate ID
 
-    * Example errors:
-
-      ```json
-      { "error": "failed to check task ID uniqueness ..." }
-      { "error": "task ID 'id' already exists" }
-      ```
+  ```json
+  { "error": "task ID 'id' already exists" }
+  ```
 
 ---
 
-### 4. Update an Existing Task
+### ✏️ Update Task
 
-* **Method:** `PUT`
-* **URL:** `/tasks/{id}`
-* **Parameters:**
+**PUT** `/tasks/{id}`
 
-  * `id` (string) – Task ID
-* **Description:** Update an existing task by ID
-* **Body Example:**
+Update an existing task by ID.
+
+#### Path Parameters
+
+| Name | Type   | Required | Description     |
+| ---- | ------ | -------- | --------------- |
+| id   | string | ✅        | Task identifier |
+
+#### Request Body
 
 ```json
 {
   "id": "6",
-  "title": "Design System",
-  "description": "Design End to End System",
+  "title": "Updated Title",
+  "description": "Updated Description",
   "due_date": "2025-07-21T17:00:00Z",
-  "status": "Pending"
+  "status": "In Progress"
 }
 ```
 
-* **Status Codes:**
+**Status Codes**
 
-  * `200 OK` – Task updated successfully
-  * `400 Bad Request` – Invalid data
-  * `404 Not Found` – Task not found
+* `200 OK` – Task updated
+* `400 Bad Request` – Invalid request
+* `404 Not Found` – Task not found
 
 ---
 
-### 5. Delete a Task
+### ❌ Delete Task
 
-* **Method:** `DELETE`
-* **URL:** `/tasks/{id}`
-* **Parameters:**
+**DELETE** `/tasks/{id}`
 
-  * `id` (string) – Task ID
-* **Description:** Delete a task by ID
-* **Response:**
+Delete a task by ID.
+
+#### Path Parameters
+
+| Name | Type   | Required | Description     |
+| ---- | ------ | -------- | --------------- |
+| id   | string | ✅        | Task identifier |
+
+#### Response
+
+```json
+{ "message": "Task deleted" }
+```
+
+**Status Codes**
+
+* `200 OK` – Task deleted
+* `404 Not Found` – Task not found
+
+---
+
+## 👤 User Endpoints
+
+### 🔐 Signup
+
+**POST** `/users/signup`
+
+Register a new user.
+
+#### Request Body
 
 ```json
 {
-  "message": "Task deleted"
+  "first_name": "Segni",
+  "last_name": "Girma",
+  "username": "valid_result",
+  "password": "12345678",
+  "user_type": "USER"
 }
 ```
 
-* **Status Codes:**
+**Status Codes**
 
-  * `200 OK` – Task deleted successfully
-  * `404 Not Found` – Task not found
+* `201 Created` – User created
+* `400 Bad Request` – Invalid input or admin required for first user
+* `409 Conflict` – Username already exists
+* `500 Internal Server Error` – Server error during signup
+
+---
+
+### 🔑 Login
+
+**GET** `/users/login`
+
+Authenticate a user.
+
+**Status Codes**
+
+* `200 OK` – Login successful
+* `400 Bad Request` – Invalid input
+* `403 Unauthorized` – Invalid credentials
+* `500 Internal Server Error` – Token generation failure
+
+---
+
+### 👥 List All Users (Admin Only)
+
+**GET** `/users`
+
+Retrieve a list of all registered users.
+
+**Status Codes**
+
+* `200 OK` – Success
+* `400 Bad Request` – Invalid request
+* `403 Forbidden` – Unauthorized access (not ADMIN)
+* `500 Internal Server Error` – Error retrieving users
+
+---
+
+### 🔍 Get User by ID
+
+**GET** `/users/{user_id}`
+
+Retrieve a specific user by their ID.
+
+#### Path Parameters
+
+| Name     | Type   | Required | Description    |
+| -------- | ------ | -------- | -------------- |
+| user\_id | string | ✅        | Unique user ID |
+
+#### Example
+
+```
+GET /users/12345
+```
+
+#### Response
+
+```json
+{
+  "id": "12345",
+  "first_name": "Segni",
+  "last_name": "Girma",
+  "username": "valid_result",
+  "user_type": "USER"
+}
+```
+
+**Status Codes**
+
+* `200 OK` – User found
+* `400 Bad Request` – Invalid ID
+* `403 Forbidden` – Unauthorized (non-admin or not self)
+* `404 Not Found` – User not found
+* `500 Internal Server Error` – Server error
+
+---
+
+## 📌 Notes
+
+* All date fields (`due_date`) must be in **ISO 8601** (RFC3339) format.
+* `status` values must be one of: `"Pending"`, `"In Progress"`, or `"Completed"`.
+* No authentication headers are shown in the Postman collection, but in a real-world application, all protected routes should enforce token-based authentication (e.g., JWT).
+
 
 
 [Postman](https://documenter.getpostman.com/view/46771916/2sB34ijf71)
